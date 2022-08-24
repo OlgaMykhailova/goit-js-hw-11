@@ -12,12 +12,18 @@ const BASE_URL = 'https://pixabay.com';
 const formEl = document.querySelector('.search-form');
 const inputEl = document.querySelector('input');
 const galleryEl = document.querySelector('.gallery');
-const loadMoreEl = document.querySelector('.load-more');
+const guardEl = document.querySelector('.js-guard');
 
+const options = {
+  root: null,
+  rootMargin: '300px',
+  threshold: 1,
+};
 let page = 1;
 
+const observer = new IntersectionObserver(updateList, options);
+
 formEl.addEventListener('submit', onSearch);
-loadMoreEl.addEventListener('click', onLoadMore);
 
 async function fetchData(page) {
   const searchValue = inputEl.value;
@@ -33,7 +39,20 @@ async function fetchData(page) {
 
 function renderMarkup(data) {
   const markup = cards(data.data.hits);
+  galleryEl.insertAdjacentHTML('beforeend', markup);
+  const lightbox = new SimpleLightbox('.gallery a', {
+    captionDelay: 250,
+    captionsData: 'alt',
+    captionPosition: 'bottom',
+  });
+  lightbox.refresh();
+}
 
+async function onSearch(event) {
+  event.preventDefault();
+  page = 1;
+  galleryEl.innerHTML = '';
+  const data = await fetchData(page);
   if (data.data.hits.length === 0) {
     Notify.warning(
       'Sorry, there are no images matching your search query. Please try again.'
@@ -42,26 +61,29 @@ function renderMarkup(data) {
   } else {
     const totalHits = data.data.totalHits;
     Notify.success(`Hooray! We found ${totalHits} images.`);
-    galleryEl.insertAdjacentHTML('beforeend', markup);
-    const lightbox = new SimpleLightbox('.gallery a', {
-      captionDelay: 250,
-      captionsData: 'alt',
-      captionPosition: 'bottom',
-    });
-    lightbox.refresh();
+    renderMarkup(data);
+    observer.observe(guardEl);
   }
 }
 
-async function onSearch(event) {
-  event.preventDefault();
-  page = 1;
-  galleryEl.innerHTML = '';
-  const data = await fetchData(page);
-  renderMarkup(data);
-  }
-
-async function onLoadMore() {
+async function loadMore() {
   page += 1;
   const data = await fetchData(page);
-  renderMarkup(data);
+  const totalHits = data.data.totalHits;
+  if (Math.round(totalHits / 40) < page) {
+    Notify.warning(
+      'We are sorry, but you have reached the end of search results.'
+    );
+    return;
+  } else {
+    renderMarkup(data);
   }
+}
+
+function updateList(entries) {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      loadMore();
+    }
+  });
+}
