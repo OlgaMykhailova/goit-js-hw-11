@@ -52,6 +52,7 @@ async function onSearch(event) {
   event.preventDefault();
   page = 1;
   galleryEl.innerHTML = '';
+  if (event.target.elements[0].value !== '') {
   const data = await fetchData(page);
   if (data.data.hits.length === 0) {
     Notify.warning(
@@ -63,6 +64,11 @@ async function onSearch(event) {
     Notify.success(`Hooray! We found ${totalHits} images.`);
     renderMarkup(data);
     observer.observe(guardEl);
+  }
+} else {
+  Notify.warning(
+    'Enter a phrase for search please.');
+    return;
   }
 }
 
