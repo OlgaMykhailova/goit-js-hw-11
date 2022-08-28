@@ -76,7 +76,7 @@ async function loadMore() {
   page += 1;
   const data = await fetchData(page);
   const totalHits = data.data.totalHits;
-  if (Math.round(totalHits / 40) < page) {
+  if (Math.ceil(totalHits / 40) < page) {
     Notify.warning(
       'We are sorry, but you have reached the end of search results.'
     );
